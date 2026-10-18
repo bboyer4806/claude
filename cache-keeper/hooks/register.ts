@@ -135,7 +135,10 @@ async function handoffAndClear($: EngineInterface): Promise<void> {
 }
 
 async function tick($: EngineInterface, defaultMinutes: number): Promise<void> {
-  const view = cacheView(cache, await $.clock.now(), defaultMinutes)
+  // Read the clock first: a step can land during the await, and the view and the
+  // warning check must both see the cache as it is after it.
+  const now = await $.clock.now()
+  const view = cacheView(cache, now, defaultMinutes)
   if (shouldWarn(cache, view)) {
     cache = onWarned(cache)
     const { title, body } = warningMessage(projectName(await $.session.cwd()), recacheOf(cache, defaultMinutes))

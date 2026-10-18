@@ -1,3 +1,4 @@
+import type { Plugin } from 'claude-code/testing'
 import { expect, test } from 'claude-code/testing'
 import { assistantRow } from './fixtures.ts'
 import { BAND_PROPS, SESSION, mountBand, runStep, world } from './world.ts'
@@ -5,6 +6,24 @@ import { BAND_PROPS, SESSION, mountBand, runStep, world } from './world.ts'
 const RESUME = { source: 'resume', model: 'claude-opus-5-5', context_tokens: 182_400, transcript_path: 'C:\\t.jsonl' } as const
 const STOP = { stop_hook_active: false, transcript_path: 'C:\\t.jsonl' }
 const toastScripts = (scripts: string[]) => scripts.filter((s) => s.includes('ToastNotificationManager'))
+
+// Parks the clock read made at T0 + 2 s (1_002_000) on a 5-second mock sleep, so a
+// step can land while the tick that made it waits. A plugin's hooks sit above the
+// test's mock.clock; an inline plugin closes over nothing of the test file.
+const HOLD_ONE_CLOCK_READ: Plugin = {
+  name: 'hold-one-clock-read',
+  register(on) {
+    let held = false
+    on('clock.now', async ($, e, next) => {
+      const now = await next(e)
+      if (!held && now.value === 1_002_000) {
+        held = true
+        await $.clock.sleep(5_000)
+      }
+      return now
+    })
+  },
+}
 
 test('a main step starts the countdown, on terminal and desktop', async ($, on) => {
   const w = world(on)
@@ -60,6 +79,22 @@ test('warns once, 5 minutes before cold', async ($, on) => {
   expect(sent).toHaveLength(1)
   expect(sent[0]).toContain('Cache Keeper: bucket-dash')
   expect(sent[0]).toContain('Re-caching after that costs $1.46')
+})
+
+// The person answers a warning by sending a message, and its step can land while a
+// tick is reading the clock. On a 6-minute window, warnings start 1 minute in.
+test('a step that lands while a tick reads the clock neither warns early nor eats the real warning', { plugins: [HOLD_ONE_CLOCK_READ], options: { default_cache_minutes: 6 } }, async ($, on) => {
+  const w = world(on)
+  await $.session.start(SESSION)
+  await $.classic.SessionStart({ ...RESUME, seconds_since_last_response: 120 })
+  await w.clock.advance(1_000)
+  expect(toastScripts(w.scripts), 'the old window warns').toHaveLength(1)
+  await w.clock.advance(1_000) // this tick's read is parked
+  await runStep($)
+  await w.clock.advance(5_000) // the parked read returns
+  expect(toastScripts(w.scripts), 'no warning right after the fresh request').toHaveLength(1)
+  await w.clock.advance(55_000) // the fresh window's last 5 minutes
+  expect(toastScripts(w.scripts), 'the fresh window warns').toHaveLength(2)
 })
 
 test('a 5-minute window never warns', async ($, on) => {
