@@ -6,10 +6,12 @@ const USAGE = { input_tokens: 2, output_tokens: 3_651, cache_read_input_tokens: 
 const stepped = onStep(INITIAL_STATE, T0, USAGE)
 const hour = onTranscript(stepped, { model: 'claude-opus-5-5', ttl: '1h', speed: 'standard', geo: 'global' })
 
-test('defaultMinutesOf accepts whole minutes from 1 to 60', () => {
+// Claude Code's own check on the setting is the range alone, so 7.5 can be saved.
+test('defaultMinutesOf accepts any number of minutes from 1 to 60', () => {
   expect(defaultMinutesOf({ default_cache_minutes: 60 })).toBe(60)
   expect(defaultMinutesOf({ default_cache_minutes: 1 })).toBe(1)
-  for (const bad of [0, 61, 7.5, '60', undefined]) {
+  expect(defaultMinutesOf({ default_cache_minutes: 7.5 })).toBe(7.5)
+  for (const bad of [0, 61, Number.NaN, '60', undefined]) {
     expect(() => defaultMinutesOf({ default_cache_minutes: bad })).toThrow('default_cache_minutes')
   }
 })

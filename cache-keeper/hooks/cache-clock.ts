@@ -36,8 +36,8 @@ const TTL_MS: Readonly<Record<Ttl, number>> = { '5m': 300_000, '1h': 3_600_000 }
 
 export function defaultMinutesOf(options: Readonly<Record<string, unknown>>): number {
   const minutes = options.default_cache_minutes
-  if (typeof minutes !== 'number' || !Number.isInteger(minutes) || minutes < 1 || minutes > 60) {
-    throw new Error('cache-keeper: default_cache_minutes must be a whole number from 1 to 60')
+  if (typeof minutes !== 'number' || !(minutes >= 1 && minutes <= 60)) {
+    throw new Error('cache-keeper: default_cache_minutes must be a number from 1 to 60')
   }
   return minutes
 }
