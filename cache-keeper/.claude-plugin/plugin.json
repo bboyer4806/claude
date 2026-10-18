@@ -1,0 +1,16 @@
+{
+  "name": "cache-keeper",
+  "version": "0.1.0",
+  "description": "Keeps the prompt cache in view: countdown to cold, context, usage limits, session cost, a 5-minute Windows warning, and Handoff & Clear.",
+  "author": { "name": "Brian Boyer" },
+  "userConfig": {
+    "default_cache_minutes": {
+      "type": "number",
+      "title": "Default cache window (minutes)",
+      "description": "Used until Claude Code reports the real cache window.",
+      "default": 60,
+      "min": 1,
+      "max": 60
+    }
+  }
+}
