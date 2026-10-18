@@ -1,0 +1,10 @@
+{
+  "name": "bboyer4806",
+  "owner": { "name": "Brian Boyer" },
+  "metadata": {
+    "description": "Brian Boyer's Claude Code mods."
+  },
+  "plugins": [
+    { "name": "cache-keeper", "source": "./cache-keeper" }
+  ]
+}

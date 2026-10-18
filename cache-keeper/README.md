@@ -39,23 +39,22 @@ The notification comes from Windows PowerShell, so Windows must allow notificati
 
 ## Install
 
-1. Put the `cache-keeper` folder somewhere permanent, such as `C:\Users\<you>\claude-mods\cache-keeper`. Claude Code reads the mod from this folder, so moving or deleting it breaks the mod.
-2. Open a terminal in the folder that contains `cache-keeper` and run:
+Cache Keeper installs from the catalog of mods in [bboyer4806/claude](https://github.com/bboyer4806/claude). In a terminal, run:
 
-   ```
-   claude plugin marketplace add ./cache-keeper
-   claude plugin install cache-keeper@cache-keeper --config default_cache_minutes=60
-   ```
+```
+claude plugin marketplace add bboyer4806/claude
+claude plugin install cache-keeper@bboyer4806 --config default_cache_minutes=60
+```
 
-3. Restart Claude Code: end the terminal session or quit the Desktop app, then start it again.
+Then restart Claude Code: end the terminal session or quit the Desktop app, and start it again. `claude plugin list` shows `cache-keeper@bboyer4806` as enabled.
 
-`claude plugin list` shows `cache-keeper@cache-keeper` as enabled.
+To update later, run `claude plugin marketplace update bboyer4806`, then `claude plugin update cache-keeper@bboyer4806`, and restart Claude Code.
 
 ## The setting
 
 `default_cache_minutes`, shown as "Default cache window (minutes)": the window the countdown uses until Claude Code reports the real one after a reply. Any number from 1 to 60; the default is 60. Until the window is known, it also picks the price for `if cold`: the 1-hour cache price when the setting is over 5 minutes, else the 5-minute price.
 
-To change it, run `/plugin configure cache-keeper@cache-keeper` in Claude Code, then restart Claude Code.
+To change it, run `/plugin configure cache-keeper@bboyer4806` in Claude Code, then restart Claude Code.
 
 ## Where the numbers come from
 
@@ -86,8 +85,7 @@ If a step fails, the sequence stops and Claude Code shows why. The session is ne
 ## Uninstall
 
 ```
-claude plugin uninstall cache-keeper@cache-keeper
-claude plugin marketplace remove cache-keeper
+claude plugin uninstall cache-keeper@bboyer4806
 ```
 
-Then delete the `cache-keeper` folder. Saved briefs stay in `%USERPROFILE%\.claude\cache-keeper\handoffs` until you delete them.
+`claude plugin marketplace remove bboyer4806` also removes the catalog, along with any other mod installed from it. Saved briefs stay in `%USERPROFILE%\.claude\cache-keeper\handoffs` until you delete them.
