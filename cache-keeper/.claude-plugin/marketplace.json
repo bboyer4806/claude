@@ -1,0 +1,10 @@
+{
+  "name": "cache-keeper",
+  "owner": { "name": "Brian Boyer" },
+  "metadata": {
+    "description": "Brian Boyer's local marketplace for the Cache Keeper mod."
+  },
+  "plugins": [
+    { "name": "cache-keeper", "source": "./" }
+  ]
+}
