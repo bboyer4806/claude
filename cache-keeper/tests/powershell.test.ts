@@ -12,8 +12,23 @@ test('encodeCommand is base64 of UTF-16LE', () => {
   expect(decodeCommand(encodeCommand('Ünïcode ✓ $x'))).toBe('Ünïcode ✓ $x')
 })
 
-test('powershellArgv runs an encoded script without a profile', () => {
-  expect(powershellArgv('Write-Output 1')).toEqual(['powershell.exe', '-NoProfile', '-NonInteractive', '-EncodedCommand', encodeCommand('Write-Output 1')])
+// Windows PowerShell 5.1 writes its own error records as CLIXML when the command is
+// encoded and stderr is redirected, whatever -OutputFormat says, so the script
+// reports its error itself, as one plain line.
+test('powershellArgv runs an encoded script that reports its error as one plain line', () => {
+  const argv = powershellArgv('Write-Output 1')
+  expect(argv.slice(0, 4)).toEqual(['powershell.exe', '-NoProfile', '-NonInteractive', '-EncodedCommand'])
+  expect(argv).toHaveLength(5)
+  expect(decodeCommand(argv[4] ?? '')).toBe([
+    "$ErrorActionPreference = 'Stop'",
+    "$ProgressPreference = 'SilentlyContinue'",
+    'try {',
+    'Write-Output 1',
+    '} catch {',
+    '  [Console]::Error.WriteLine($_.Exception.Message)',
+    '  exit 1',
+    '}',
+  ].join('\n'))
 })
 
 test('tailScript keeps the last 3 of the last 200 lines that carry cache writes', () => {
