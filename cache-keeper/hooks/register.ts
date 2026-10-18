@@ -14,17 +14,29 @@ import {
   onWarned,
   shouldWarn,
 } from './cache-clock.ts'
-import { projectName } from './handoff.ts'
+import {
+  HANDOFF_PROMPT,
+  fillRefusedText,
+  forkFailureText,
+  handoffDraft,
+  handoffFileName,
+  handoffFileText,
+  handoffPath,
+  projectName,
+  stoppedText,
+} from './handoff.ts'
 import { powershellArgv, tailScript, toastScript } from './powershell.ts'
 import { lastMainUsage } from './transcript.ts'
 
 // Cache Keeper: follows Claude Code's events to keep the cache clock, draws the band
-// above the prompt, and shows a Windows toast 5 minutes before the cache goes cold.
-// This is the only module that calls $; the others are plain functions.
+// above the prompt, shows a Windows toast 5 minutes before the cache goes cold, and
+// runs Handoff & Clear. This is the only module that calls $; the others are plain
+// functions.
 
 let cache: CacheState = INITIAL_STATE
 let usage: UsageSnapshot | undefined
 let transcriptErrorShown = false
+let handoffRunning = false
 
 export function register(on: On, options: PluginOptions): void {
   const defaultMinutes = defaultMinutesOf(options)
@@ -79,9 +91,47 @@ export function register(on: On, options: PluginOptions): void {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)
-    const model = bandModelOf({ cache, usage, now: await $.clock.now(), defaultMinutes })
-    return bandTree($.ui.resolve(e), model)
+    const model = bandModelOf({
+      cache,
+      usage,
+      now: await $.clock.now(),
+      defaultMinutes,
+      isWorking: e.props.isWorking,
+      handoffRunning,
+    })
+    return bandTree($.ui.resolve(e), model, () => handoffAndClear($))
   })
+}
+
+// Writes the brief from the session's own conversation, saves it, clears the
+// session, then puts the brief in the prompt box. Never clears without a saved brief.
+async function handoffAndClear($: EngineInterface): Promise<void> {
+  if (handoffRunning) return
+  handoffRunning = true
+  $.ui.invalidate('ui.render')
+  let savedPath: string | undefined
+  try {
+    const reply = await $.model.fork({ prompt: HANDOFF_PROMPT })
+    if (!reply.isAnswered) {
+      $.ui.toast(forkFailureText(reply), { timeoutMs: 10_000 })
+      return
+    }
+    const userProfile = await $.env.get("USERPROFILE")
+    if (!userProfile) throw new Error('USERPROFILE is not set')
+    const project = projectName(await $.session.cwd())
+    const savedAt = await $.clock.now()
+    const path = handoffPath(userProfile, handoffFileName(savedAt, project))
+    await $.fs.write(path, handoffFileText({ brief: reply.text, project, savedAt, sessionId: await $.session.id() }))
+    savedPath = path
+    await $.command.run({ command: 'clear' })
+    const filled = await $.prompt.fill({ text: handoffDraft(path, reply.text) })
+    if (!filled.isFilled) $.ui.toast(fillRefusedText(path, filled.refusal), { timeoutMs: 10_000 })
+  } catch (error) {
+    $.ui.toast(stoppedText(messageOf(error), savedPath), { timeoutMs: 10_000 })
+  } finally {
+    handoffRunning = false
+    $.ui.invalidate('ui.render')
+  }
 }
 
 async function tick($: EngineInterface, defaultMinutes: number): Promise<void> {

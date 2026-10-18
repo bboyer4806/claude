@@ -23,6 +23,7 @@ export type BandModel = {
   fiveHour?: Limit
   week?: Limit
   costUsd?: number
+  button: 'hidden' | 'ready' | 'writing'
 }
 
 export type Segment = { label: string; value: string; color?: 'success' | 'warning' | 'error'; note?: string }
@@ -46,7 +47,14 @@ export function recacheOf(cache: CacheState, defaultMinutes: number): Recache | 
   return usd === undefined ? { kind: 'unpriced', model } : { kind: 'usd', usd }
 }
 
-export function bandModelOf(i: { cache: CacheState; usage?: UsageSnapshot; now: number; defaultMinutes: number }): BandModel {
+export function bandModelOf(i: {
+  cache: CacheState
+  usage?: UsageSnapshot
+  now: number
+  defaultMinutes: number
+  isWorking: boolean
+  handoffRunning: boolean
+}): BandModel {
   const tokens = i.usage?.context?.tokens
   return {
     view: cacheView(i.cache, i.now, i.defaultMinutes),
@@ -55,6 +63,7 @@ export function bandModelOf(i: { cache: CacheState; usage?: UsageSnapshot; now: 
     fiveHour: limitOf(i.usage, 'five_hour', i.now),
     week: limitOf(i.usage, 'seven_day', i.now),
     costUsd: i.usage?.cost?.usd,
+    button: i.handoffRunning ? 'writing' : i.isWorking || !i.cache.hasTurn ? 'hidden' : 'ready',
   }
 }
 
@@ -69,13 +78,15 @@ export function segmentsOf(m: BandModel): Segment[] {
   ]
 }
 
-export function bandTree(el: BandElements, m: BandModel): RenderElement {
-  return el.Box({
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    columnGap: 2,
-    children: segmentsOf(m).map((s) => segmentTree(el, s)),
-  })
+export function bandTree(el: BandElements, m: BandModel, onHandoff: () => Promise<void>): RenderElement {
+  const children = segmentsOf(m).map((s) => segmentTree(el, s))
+  if (m.button === 'ready') {
+    children.push(el.Button({ key: 'handoff', label: 'Handoff & Clear', hotkey: 'h', plain: true, onPress: () => onHandoff() }))
+  }
+  if (m.button === 'writing') {
+    children.push(el.Text({ dimColor: true, children: ['writing handoff brief...'] }))
+  }
+  return el.Box({ flexDirection: 'row', flexWrap: 'wrap', columnGap: 2, children })
 }
 
 export function warningMessage(project: string, recache: Recache | undefined): { title: string; body: string } {

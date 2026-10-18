@@ -14,7 +14,8 @@ const usage = {
   ],
   cost: { usd: 12.84 },
 }
-const segs = (c: CacheState, now: number) => segmentsOf(bandModelOf({ cache: c, usage, now, defaultMinutes: 60 }))
+const IDLE = { isWorking: false, handoffRunning: false }
+const segs = (c: CacheState, now: number) => segmentsOf(bandModelOf({ cache: c, usage, now, defaultMinutes: 60, ...IDLE }))
 
 test('a warm cache reads like the approved mockup', () => {
   expect(segs(cache, NOW)).toEqual([
@@ -38,7 +39,7 @@ test('a cold cache shows what the next message costs', () => {
 })
 
 test('figures not reported yet show --', () => {
-  expect(segmentsOf(bandModelOf({ cache: { hasTurn: false }, now: T0, defaultMinutes: 45 }))).toEqual([
+  expect(segmentsOf(bandModelOf({ cache: { hasTurn: false }, now: T0, defaultMinutes: 45, ...IDLE }))).toEqual([
     { label: 'cache', value: '--:--', note: '45m set' },
     { label: 'ctx', value: '--' },
     { label: '5h', value: '--' },
@@ -50,6 +51,15 @@ test('figures not reported yet show --', () => {
 
 test('an unknown model has no price', () => {
   expect(segs({ ...cache, model: 'gpt-6' }, NOW)[5]).toEqual({ label: 'if cold', value: 'no price for gpt-6' })
+})
+
+test('the handoff button is ready after a turn when idle, hidden while working or before a turn, writing during a handoff', () => {
+  const button = (c: CacheState, flags: { isWorking: boolean; handoffRunning: boolean }) =>
+    bandModelOf({ cache: c, usage, now: NOW, defaultMinutes: 60, ...flags }).button
+  expect(button(cache, IDLE)).toBe('ready')
+  expect(button(cache, { isWorking: true, handoffRunning: false })).toBe('hidden')
+  expect(button({ hasTurn: false }, IDLE)).toBe('hidden')
+  expect(button(cache, { isWorking: false, handoffRunning: true })).toBe('writing')
 })
 
 test('warningMessage names the project and the cost when it is known', () => {
@@ -65,17 +75,30 @@ test('warningMessage names the project and the cost when it is known', () => {
 type Fake = { type: string; props: { children?: unknown[]; [prop: string]: unknown } }
 const fake = (type: string) => (props: Fake['props']): Fake => ({ type, props })
 const FAKE_ELEMENTS = { Box: fake('Box'), Text: fake('Text'), Button: fake('Button') } as unknown as BandElements
+const noHandoff = async () => {}
+const rowsOf = (flags: { isWorking: boolean; handoffRunning: boolean }) => {
+  const tree = bandTree(FAKE_ELEMENTS, bandModelOf({ cache, usage, now: NOW, defaultMinutes: 60, ...flags }), noHandoff) as unknown as Fake
+  return { tree, rows: (tree.props.children ?? []) as Fake[] }
+}
 
 test('bandTree draws one row per segment, coloring only the value', () => {
-  const tree = bandTree(FAKE_ELEMENTS, bandModelOf({ cache, usage, now: NOW, defaultMinutes: 60 })) as unknown as Fake
-  const rows = (tree.props.children ?? []) as Fake[]
+  const { tree, rows } = rowsOf(IDLE)
   const cells = (i: number) => ((rows[i]?.props.children ?? []) as Fake[]).map((cell) => cell.props)
   expect(tree.props.flexWrap).toBe('wrap')
-  expect(rows).toHaveLength(6)
   expect(cells(0)).toEqual([
     { dimColor: true, children: ['cache'] },
     { color: 'success', children: ['47:12'] },
     { dimColor: true, children: ['1h detected'] },
   ])
   expect(cells(1)).toEqual([{ dimColor: true, children: ['ctx'] }, { children: ['182.4k 18%'] }])
+})
+
+test('bandTree ends with the Handoff & Clear button when ready, or a note while writing', () => {
+  const ready = rowsOf(IDLE).rows
+  expect(ready).toHaveLength(7)
+  expect(ready[6]?.type).toBe('Button')
+  expect(ready[6]?.props).toMatchObject({ key: 'handoff', label: 'Handoff & Clear', hotkey: 'h', plain: true })
+  const writing = rowsOf({ isWorking: false, handoffRunning: true }).rows
+  expect(writing[6]?.props).toEqual({ dimColor: true, children: ['writing handoff brief...'] })
+  expect(rowsOf({ isWorking: true, handoffRunning: false }).rows).toHaveLength(6)
 })
