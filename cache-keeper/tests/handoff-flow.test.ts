@@ -17,12 +17,12 @@ test('the button appears after a main turn and hides while working', async ($, o
   await $.session.start(SESSION)
   expect(await (await mountBand($)).find({ key: 'handoff' })).toBeUndefined()
   await runStep($)
-  expect((await (await mountBand($)).find({ key: 'handoff' }))?.props.label).toBe('Handoff & Clear')
+  expect((await (await mountBand($)).find({ key: 'handoff' }))?.props.label).toBe('New session with handoff')
   const working = await mountBand($, 'terminal', { ...BAND_PROPS, isWorking: true })
   expect(await working.find({ key: 'handoff' })).toBeUndefined()
 })
 
-test('Handoff & Clear forks, saves, clears, then drafts the brief', async ($, on) => {
+test('New session with handoff forks, saves, clears, then drafts the brief', async ($, on) => {
   const w = world(on)
   await startAndPress($)
   expect(w.calls).toEqual(['fork', 'write', 'clear', 'fill'])
@@ -38,21 +38,21 @@ test('a failed brief stops before saving or clearing', async ($, on) => {
   w.forkResult = { isAnswered: false, reason: 'api-error', status: 529, error: 'overloaded', usage: ZERO_USAGE }
   await startAndPress($)
   expect(w.calls).toEqual(['fork'])
-  expect(w.toasts).toEqual(['Handoff & Clear stopped: the brief request failed (529).'])
+  expect(w.toasts).toEqual(['New session with handoff stopped: the brief request failed (529).'])
 })
 
 test('a refused save never clears', async ($, on) => {
   const w = world(on, { writeFails: true })
   await startAndPress($)
   expect(w.calls).toEqual(['fork', 'write'])
-  expect(w.toasts[0]).toStartWith('Handoff & Clear stopped:')
+  expect(w.toasts[0]).toStartWith('New session with handoff stopped:')
 })
 
 test('an unset USERPROFILE stops before saving', async ($, on) => {
   const w = world(on, { userProfile: null })
   await startAndPress($)
   expect(w.calls).toEqual(['fork'])
-  expect(w.toasts).toEqual(['Handoff & Clear stopped: USERPROFILE is not set.'])
+  expect(w.toasts).toEqual(['New session with handoff stopped: USERPROFILE is not set.'])
 })
 
 test('a failed clear names the saved brief', async ($, on) => {

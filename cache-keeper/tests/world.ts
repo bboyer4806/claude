@@ -1,7 +1,7 @@
 // The world beneath the mod in kit tests: every answer Claude Code would give,
 // a clock the test moves, and what the mod asked for, recorded.
 
-import type { ModelForkResult, On, ProcessRunResult, PromptFillResult, TurnUsage } from 'claude-code'
+import type { CommandRunResult, ModelForkResult, On, ProcessRunResult, PromptFillResult, TurnUsage } from 'claude-code'
 import type { Engine, MockClock } from 'claude-code/testing'
 import { mock } from 'claude-code/testing'
 import { decodeCommand } from './fixtures.ts'
@@ -34,6 +34,9 @@ export type World = {
   forkResult: ModelForkResult
   forkDelayMs: number
   fillResult: PromptFillResult
+  draft: string
+  store: Record<string, unknown>
+  commands: string[]
 }
 
 export function world(on: On, opts: WorldOptions = {}): World {
@@ -49,6 +52,9 @@ export function world(on: On, opts: WorldOptions = {}): World {
     forkResult: { isAnswered: true, text: '## Goal\nShip it.', usage: ZERO_USAGE },
     forkDelayMs: 0,
     fillResult: { isFilled: true },
+    draft: '',
+    store: {},
+    commands: [],
   }
   mock.env(on, opts.userProfile === null ? {} : { USERPROFILE: opts.userProfile ?? 'C:\\Users\\Brian' })
   on('session.start', ($, e) => ({ cwd: e.cwd }))
@@ -91,6 +97,18 @@ export function world(on: On, opts: WorldOptions = {}): World {
     w.filled.push(e.text)
     return w.fillResult
   })
+  on('prompt.read', () => ({ value: { text: w.draft, cursor: w.draft.length } }))
+  on('store.get', ($, e) => ({ value: w.store[e.key] }))
+  on('store.set', ($, e) => {
+    w.store[e.key] = e.value
+    return { value: undefined }
+  })
+  on('command.register', ($, e) => {
+    w.commands.push(e.name)
+    return { value: { command: e.name } }
+  })
+  on('turn.start', ($, e) => ({ turnId: e.turnId }))
+  on('turn.complete', () => ({ text: '' }))
   on('classic.Stop', () => ({}))
   on('classic.SessionStart', () => ({}))
   on('classic.PostModelSwitch', () => ({}))
@@ -105,4 +123,21 @@ export async function runStep($: Engine, agentId?: string): Promise<void> {
 
 export function mountBand($: Engine, surface: 'terminal' | 'desktop' = 'terminal', props: typeof BAND_PROPS = BAND_PROPS) {
   return $.ui.mount({ plugin: 'cache-keeper', surface, component: 'AbovePrompt', props })
+}
+
+// The context figures Claude Code reports after a reply, on a 1M-token window.
+export async function measure($: Engine, tokens: number): Promise<void> {
+  await $.session.measure({ context: { tokens, window: 1_000_000, percent: Math.round(tokens / 10_000) }, rateLimits: [], changed: ['context'] })
+}
+
+export async function startTurn($: Engine, turnId = 't2'): Promise<void> {
+  await $.turn.start({ text: 'back again', turnId })
+}
+
+export async function endTurn($: Engine, turnId = 't2'): Promise<void> {
+  await $.turn.complete({ answer: 'ok', durationMs: 1_000, isAborted: false, turnId, reason: 'answer' })
+}
+
+export async function runCommand($: Engine, command: string, args = ''): Promise<CommandRunResult> {
+  return $.command.run({ command, args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 120 } })
 }

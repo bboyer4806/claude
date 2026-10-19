@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { HANDOFF_PROMPT, fillRefusedText, forkFailureText, handoffDraft, handoffFileName, handoffFileText, handoffPath, projectName, stoppedText } from '../hooks/handoff.ts'
+import { HANDOFF_PROMPT, autoDoneText, autoKeptText, fillRefusedText, forkFailureText, freshStoppedText, handoffDraft, handoffFileName, handoffFileText, handoffPath, projectName, stoppedText } from '../hooks/handoff.ts'
 
 const AT = new Date(2026, 9, 18, 14, 32).getTime()
 
@@ -23,14 +23,14 @@ test('the draft names the saved file above the brief', () => {
 })
 
 test('failure messages', () => {
-  expect(forkFailureText({ reason: 'api-error', status: 529 })).toBe('Handoff & Clear stopped: the brief request failed (529).')
-  expect(forkFailureText({ reason: 'api-error', status: null })).toBe('Handoff & Clear stopped: the brief request failed (no status).')
-  expect(forkFailureText({ reason: 'empty-reply' })).toBe('Handoff & Clear stopped: the model returned no brief.')
-  expect(forkFailureText({ reason: 'aborted' })).toBe('Handoff & Clear stopped: the brief request was cancelled.')
-  expect(forkFailureText({ reason: 'nothing-to-fork' })).toBe('Handoff & Clear stopped: there is no conversation to hand off yet.')
-  expect(stoppedText('USERPROFILE is not set')).toBe('Handoff & Clear stopped: USERPROFILE is not set.')
-  expect(stoppedText('disk full.')).toBe('Handoff & Clear stopped: disk full.')
-  expect(stoppedText('clear failed', 'C:\\h.md')).toBe('Handoff & Clear stopped: clear failed. The brief is saved at C:\\h.md.')
+  expect(forkFailureText({ reason: 'api-error', status: 529 })).toBe('New session with handoff stopped: the brief request failed (529).')
+  expect(forkFailureText({ reason: 'api-error', status: null })).toBe('New session with handoff stopped: the brief request failed (no status).')
+  expect(forkFailureText({ reason: 'empty-reply' })).toBe('New session with handoff stopped: the model returned no brief.')
+  expect(forkFailureText({ reason: 'aborted' })).toBe('New session with handoff stopped: the brief request was cancelled.')
+  expect(forkFailureText({ reason: 'nothing-to-fork' })).toBe('New session with handoff stopped: there is no conversation to hand off yet.')
+  expect(stoppedText('USERPROFILE is not set')).toBe('New session with handoff stopped: USERPROFILE is not set.')
+  expect(stoppedText('disk full.')).toBe('New session with handoff stopped: disk full.')
+  expect(stoppedText('clear failed', 'C:\\h.md')).toBe('New session with handoff stopped: clear failed. The brief is saved at C:\\h.md.')
   expect(fillRefusedText('C:\\h.md', 'dialog')).toBe('Brief saved at C:\\h.md, but it could not be put in the prompt box (dialog).')
   expect(fillRefusedText('C:\\h.md')).toBe('Brief saved at C:\\h.md, but it could not be put in the prompt box (refused).')
 })
@@ -39,4 +39,15 @@ test('the prompt asks for the six sections, text only', () => {
   for (const part of ['## Goal', '## Current state', '## Decisions and reasons', '## Open questions', '## Next steps', '## Key files and commands', 'Do not call tools.']) {
     expect(HANDOFF_PROMPT).toContain(part)
   }
+})
+
+test('what automatic handoff and Fresh session say', () => {
+  expect(autoDoneText('C:\\h.md', true)).toBe(
+    'You were away and the prompt cache was 5 minutes from going cold, so Cache Keeper started a new session with a handoff brief. The brief is saved at C:\\h.md and waiting in the prompt box.',
+  )
+  expect(autoDoneText('C:\\h.md', false)).toBe(
+    'You were away and the prompt cache was 5 minutes from going cold, so Cache Keeper started a new session with a handoff brief. The brief is saved at C:\\h.md.',
+  )
+  expect(autoKeptText('C:\\h.md')).toBe('Automatic handoff saved a brief at C:\\h.md but left this session as it was, because you came back.')
+  expect(freshStoppedText('clear failed')).toBe('Fresh session stopped: clear failed.')
 })

@@ -1,7 +1,7 @@
 {
   "name": "cache-keeper",
-  "version": "0.1.0",
-  "description": "Keeps the prompt cache in view: countdown to cold, context, usage limits, session cost, a 5-minute Windows warning, and Handoff & Clear.",
+  "version": "0.2.0",
+  "description": "Keeps the prompt cache in view: countdown to cold, context, usage limits, session cost, a 5-minute Windows warning, a quality warning past your handoff threshold, New session with handoff (by button, /handoff or automatically) and Fresh session.",
   "author": { "name": "Brian Boyer" },
   "userConfig": {
     "default_cache_minutes": {

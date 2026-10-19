@@ -1,5 +1,6 @@
-// The text Handoff & Clear writes: the prompt that asks for the brief, the saved
-// file, the prompt-box draft, and what it says when it stops.
+// The text New session with handoff writes: the prompt that asks for the brief, the
+// saved file, the prompt-box draft, and what it, /handoff, automatic handoff and
+// Fresh session say.
 
 export const HANDOFF_PROMPT = [
   'Write a handoff brief so a fresh Claude Code session with no memory of this conversation can continue the work. Reply with the brief only, in Markdown, under 500 words, using these sections:',
@@ -14,7 +15,10 @@ export const HANDOFF_PROMPT = [
   'Be specific: exact file paths, commands, identifiers and values. Leave out finished work the next session does not need. Do not call tools. Do not use em dashes.',
 ].join('\n')
 
-const STOPPED = 'Handoff & Clear stopped:'
+const STOPPED = 'New session with handoff stopped:'
+
+export const HANDOFF_STARTED = 'Writing a handoff brief. Cache Keeper then starts a new session with the brief in the prompt box.'
+export const HANDOFF_BUSY = 'A handoff brief is already being written.'
 
 export function projectName(cwd: string): string {
   return cwd.split(/[\\/]/).filter((part) => part !== '').at(-1) ?? cwd
@@ -60,6 +64,19 @@ export function stoppedText(message: string, savedPath?: string): string {
 
 export function fillRefusedText(path: string, refusal?: string): string {
   return `Brief saved at ${path}, but it could not be put in the prompt box (${refusal ?? 'refused'}).`
+}
+
+export function autoDoneText(path: string, isFilled: boolean): string {
+  const where = isFilled ? ' and waiting in the prompt box.' : '.'
+  return `You were away and the prompt cache was 5 minutes from going cold, so Cache Keeper started a new session with a handoff brief. The brief is saved at ${path}${where}`
+}
+
+export function autoKeptText(path: string): string {
+  return `Automatic handoff saved a brief at ${path} but left this session as it was, because you came back.`
+}
+
+export function freshStoppedText(message: string): string {
+  return `Fresh session stopped: ${message.replace(/\.$/, '')}.`
 }
 
 function localStamp(ms: number): { date: string; time: string } {

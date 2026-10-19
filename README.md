@@ -4,7 +4,7 @@ Brian Boyer's mods for Claude Code, published as one plugin catalog.
 
 | Mod | What it does |
 | --- | --- |
-| [Cache Keeper](cache-keeper/README.md) | A strip above the prompt with the prompt cache countdown, context size, usage limits and session cost; a Windows warning before the cache goes cold; and a one-press Handoff & Clear. |
+| [Cache Keeper](cache-keeper/README.md) | A strip above the prompt with the prompt cache countdown, context size, usage limits and session cost; a Windows warning before the cache goes cold; a quality warning past your handoff threshold; and New session with handoff, by button, `/handoff` or automatically when you are away. |
 | [Assumption Tracker](assumption-tracker/README.md) | After each task, lists the assumptions Claude made that you did not spell out. Mark each one Right or Wrong, add a note, and Claude fixes only the wrong ones. |
 
 ## Install a mod
