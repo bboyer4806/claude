@@ -107,6 +107,8 @@ export function world(on: On, opts: WorldOptions = {}): World {
     w.commands.push(e.name)
     return { value: { command: e.name } }
   })
+  // The engine's own drawing of the band, empty outside a survey.
+  on('ui.render', { component: 'AbovePrompt' }, () => ({ type: 'engine', ref: 0 }))
   on('turn.start', ($, e) => ({ turnId: e.turnId }))
   on('turn.complete', () => ({ text: '' }))
   on('classic.Stop', () => ({}))

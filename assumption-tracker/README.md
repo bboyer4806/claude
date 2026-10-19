@@ -9,7 +9,7 @@ Claude made 3 assumptions.  0: review
 ## How it works
 
 1. When Claude finishes a task, the mod asks Claude to list every assumption it made that you did not explicitly specify: how it read the request, scope, defaults, names, file locations, libraries, formats, edge cases. It gets at most 12, most important first. The question goes to a side copy of the conversation, so nothing is added to your transcript.
-2. While that runs (a few seconds), the strip reads `Checking what Claude assumed...`. Then it reads `Claude made N assumptions.` If there were none, there is no strip. The strip hides while Claude is working.
+2. While that runs (a few seconds), the strip reads `Checking what Claude assumed...`. Then it reads `Claude made N assumptions.` If there were none, there is no strip. The strip hides while Claude is working. Another mod that draws in the same band, such as Cache Keeper, keeps its line there too.
 3. Press `0` in an empty prompt box to open the list. You can also click `review`, or run `/assumptions`. Outside the strip, a prompt that starts with 0 types normally.
 4. Tab moves through the list, and `›` marks the assumption you are on. For each one, choose `✓ Right` or `✗ Wrong`, and type a note if you like (what it should have been). Choosing Wrong moves you to its note. Choosing Right moves you to the next assumption. Choosing the same answer again clears it.
 5. Close the list with the `Send N fixes to Claude` button or Esc. If anything is marked Wrong, the mod sends Claude one message, as you. Items you left unmarked are not mentioned.

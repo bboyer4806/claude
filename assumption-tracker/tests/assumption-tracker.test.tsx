@@ -1,3 +1,4 @@
+import type { Plugin } from 'claude-code/testing'
 import { expect, mock, test } from 'claude-code/testing'
 import type { On, RenderSurface } from 'claude-code'
 
@@ -159,4 +160,31 @@ test('no strip for a subagent, an interrupted turn, or a task with no assumption
 
   const band = await $.ui.mount({ plugin: PLUGIN, surface: 'desktop', component: 'AbovePrompt', props: BAND })
   expect(await band.find({ type: 'Text', text: 'engine band' })).toBeDefined()
+})
+
+// A stand-in for another mod's strip (Cache Keeper's) drawn beneath this one in the
+// band above the prompt. An inline plugin closes over nothing of the test file.
+const KEEPER_BELOW: Plugin = {
+  name: 'cache-keeper',
+  tier: 'append',
+  register(on) {
+    on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+      if (e.props.hasSurvey) return next(e)
+      const { Text } = $.ui.resolve(e)
+      return Text({ children: ['cache 47:12'] })
+    })
+  },
+}
+
+test('a strip from another mod beneath stays in the band, under this one', { plugins: [KEEPER_BELOW] }, async ($, on) => {
+  const w = world(on)
+
+  await $.turn.complete({ answer: 'Done.', durationMs: 10, isAborted: false, turnId: 't1', reason: 'answer' })
+  await w.clock.settle()
+
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const band = await $.ui.mount({ plugin: PLUGIN, surface, component: 'AbovePrompt', props: BAND })
+    expect(await band.find({ type: 'Text', text: 'Claude made 3 assumptions.' })).toBeDefined()
+    expect(await band.find({ type: 'Text', text: 'cache 47:12' })).toBeDefined()
+  }
 })

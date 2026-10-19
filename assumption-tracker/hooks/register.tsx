@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, RenderSurface } from 'claude-code'
+import type { EngineInterface, Register, RenderElement, RenderSurface } from 'claude-code'
 
 import type { Assumption, AssumptionSet, Verdict } from '../types'
 import { countLabel, EXTRACT_PROMPT, fixesLabel, fixPrompt, parseAssumptions } from './prompts'
@@ -68,26 +68,36 @@ export const register: Register = on => {
     return { text: e.text, cursor: e.cursor }
   })
 
+  // The band is shared with other mods' strips (Cache Keeper's): keep what is drawn
+  // beneath, under this one. Outside a survey the engine's own drawing is empty.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.props.hasSurvey || e.props.isWorking) return next(e)
+    const below = await next(e)
+    if (e.props.hasSurvey || e.props.isWorking) return below
 
     const set = await read($, current)
-    if (set === null || set.status === 'reviewed') return next(e)
+    if (set === null || set.status === 'reviewed') return below
 
     const { Box, Button, Text } = $.ui.resolve(e)
+    const withBelow = (mine: RenderElement) =>
+      below.type === 'engine' ? mine : (
+        <Box flexDirection="column">
+          {mine}
+          {below}
+        </Box>
+      )
 
     if (set.status === 'collecting') {
-      return <Text dimColor>Checking what Claude assumed…</Text>
+      return withBelow(<Text dimColor>Checking what Claude assumed…</Text>)
     }
-    if (set.items.length === 0) return next(e)
+    if (set.items.length === 0) return below
 
-    return (
+    return withBelow(
       <Box gap={1}>
         <Text>Claude made {countLabel(set.items.length)}.</Text>
         <Button key="review" plain hotkey="0" dimColor onPress={() => openReview($)}>
           review
         </Button>
-      </Box>
+      </Box>,
     )
   })
 

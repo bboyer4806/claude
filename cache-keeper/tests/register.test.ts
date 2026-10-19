@@ -165,7 +165,7 @@ test('usage figures follow session.measure', async ($, on) => {
 })
 
 test('the band yields to a survey', async ($, on) => {
-  on('ui.render', () => ({ type: 'Text', props: {}, children: ['survey'] }))
+  on('ui.render', { component: 'AbovePrompt' }, ($, e, next) => (e.props.hasSurvey ? { type: 'Text', props: {}, children: ['survey'] } : next(e)))
   world(on)
   await $.session.start(SESSION)
   const band = await mountBand($)

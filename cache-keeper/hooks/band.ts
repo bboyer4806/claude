@@ -103,6 +103,13 @@ export function bandTree(el: BandElements, m: BandModel, onHandoff: () => Promis
   return el.Box({ flexDirection: 'row', flexWrap: 'wrap', columnGap: 2, children })
 }
 
+// Another mod's strip shares the band: draw it under this one. Outside a survey the
+// engine's own drawing of the band is empty, so it is left out.
+export function withBelow(el: BandElements, mine: RenderElement, below: RenderElement): RenderElement {
+  if (below.type === 'engine') return mine
+  return el.Box({ flexDirection: 'column', children: [mine, below] })
+}
+
 export function warningMessage(project: string, recache: Recache | undefined): { title: string; body: string } {
   const cost = recache?.kind === 'usd' ? `Re-caching after that costs ${formatUsd(recache.usd)}. ` : ''
   return {

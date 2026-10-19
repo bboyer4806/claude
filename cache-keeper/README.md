@@ -25,7 +25,7 @@ cache 47:12 1h detected  ctx 520k 52% quality may slip  ...  if cold $4.16  h: N
 | `h: New session with handoff` | The New session with handoff button, described below. |
 | `f: Fresh session` | The Fresh session button, shown only past the threshold, described below. |
 
-A figure Claude Code has not reported yet shows `--`. The strip redraws every second and wraps when the window is narrow.
+A figure Claude Code has not reported yet shows `--`. The strip redraws every second and wraps when the window is narrow. Another mod that draws in the same band, such as Assumption Tracker, keeps its line there, under or over Cache Keeper's.
 
 The buttons appear once Claude has replied since the session started, or since the last `/clear`, `/compact` or resume, and hide while Claude is working. In the terminal, press Ctrl+X then Tab to move the focus to the strip, then the button's letter. In the Desktop app or a fullscreen terminal, you can click them.
 

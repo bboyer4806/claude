@@ -1,6 +1,6 @@
 import type { EngineInterface, On, PluginOptions } from 'claude-code'
 import type { Recache, UsageSnapshot } from './band.ts'
-import { bandModelOf, bandTree, qualityToastText, recacheOf, warningMessage } from './band.ts'
+import { bandModelOf, bandTree, qualityToastText, recacheOf, warningMessage, withBelow } from './band.ts'
 import type { CacheState } from './cache-clock.ts'
 import {
   INITIAL_STATE,
@@ -148,6 +148,7 @@ export function register(on: On, options: PluginOptions): void {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)
+    const below = await next(e)
     const now = await $.clock.now()
     const model = bandModelOf({
       cache,
@@ -159,14 +160,16 @@ export function register(on: On, options: PluginOptions): void {
       threshold: autoSetting.threshold,
       freshArmed: freshArmedAt !== undefined && now - freshArmedAt < FRESH_CONFIRM_MS,
     })
-    return bandTree(
-      $.ui.resolve(e),
+    const el = $.ui.resolve(e)
+    const mine = bandTree(
+      el,
       model,
       async () => {
         await handoffAndClear($)
       },
       () => freshSession($),
     )
+    return withBelow(el, mine, below)
   })
 }
 
