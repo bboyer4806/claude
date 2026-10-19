@@ -5,6 +5,7 @@
     "description": "Brian Boyer's Claude Code mods."
   },
   "plugins": [
-    { "name": "cache-keeper", "source": "./cache-keeper" }
+    { "name": "cache-keeper", "source": "./cache-keeper" },
+    { "name": "assumption-tracker", "source": "./assumption-tracker" }
   ]
 }
